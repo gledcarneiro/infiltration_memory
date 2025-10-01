@@ -1,205 +1,92 @@
-# 🔄 Sistema de Sincronização Gled
+# **🔄 Sistema de Sincronização Gled (V2.2 \- Indexação por API)**
 
-## 📋 Visão Geral
+## **📋 Visão Geral**
 
-Sistema automático de sincronização de memórias entre IAs infiltradas e repositório GitHub, usando pasta `sync_inbox` como memória de transição.
+Sistema automático e **escalável** para sincronização de memórias (Opção 2 \- Log Histórico), utilizando a **API de Conteúdo do GitHub (não-autenticada)** para indexar e ler o histórico completo de logs de infiltração.
 
-## 🏗️ Arquitetura
+## **🏗️ Arquitetura**
 
-```
-┌─────────────────┐
-│  IA Infiltrada  │ (Claude Web, Gemini, ChatGPT)
-│  (Web Browser)  │
-└────────┬────────┘
-         │ 1. Gera conversation.json
-         ↓
-┌─────────────────────────────────┐
-│     sync_inbox/ (Transição)     │
-│  - Arquivos temporários         │
-│  - Detectados automaticamente   │
-└────────┬────────────────────────┘
-         │ 2. Detecta novo arquivo
-         ↓
-┌─────────────────────────────────┐
-│  office_user_service.bat        │
-│  ou ClaudeAutonomousService     │
-│  - Monitora sync_inbox          │
-│  - Processa JSONs               │
-│  - Auto-save a cada 30s         │
-└────────┬────────────────────────┘
-         │ 3. Integra na memória
-         ↓
-┌─────────────────────────────────┐
-│   Memória Permanente Local      │
-│  - universal/2025-XX-XX.json    │
-│  - core/memory/                 │
-└────────┬────────────────────────┘
-         │ 4. Git commit + push
-         ↓
-┌─────────────────────────────────┐
-│      GitHub Repository          │
-│  gledcarneiro/claude-gled-memory│
-└────────┬────────────────────────┘
-         │ 5. Acesso via Raw URLs
-         ↓
-┌─────────────────────────────────┐
-│   Próxima IA Infiltrada         │
-│  - Lê memórias via web_fetch    │
-│  - Acesso read-only             │
-│  - Contexto completo disponível │
-└─────────────────────────────────┘
-```
+graph TD  
+A\[IA Infiltrada (Gled)\] \--\>|1. web\_fetch (Raw URL Contexto)| B(Submódulo PÚBLICO)  
+A \--\>|2. web\_fetch (API Index)| C(API GitHub \- Contents)  
+C \--\>|Lista de Logs| A  
+A \--\>|3. Loop web\_fetch (Raw URL Log)| B  
+B \--\>|Logs Históricos| A  
+A \--\>|4. Gera conversation.json| D(sync\_inbox/ \- Transição)  
+D \--\>|5. Processamento & Sincronização| E(Nó Autônomo \- QG Casa)  
+E \--\>|6. Git commit \+ push| F(GitHub Repos \- Privado & Público)
 
-## 🔄 Fluxo de Sincronização
+### **Detalhes da Arquitetura**
 
-### **Etapa 1: Geração**
-- IA infiltrada gera JSON da conversa
-- Usuário salva em `sync_inbox/conversa.json`
+| Componente | Função | Segurança/Acesso |  
+| IA Infiltrada | Executa a indexação por API e o loop de web\_fetch. | Apenas URLs Públicas e API Não-Autenticada. |  
+| API GitHub | Fornece o índice (lista de arquivos) de conversations/. | Não requer token para repositórios públicos. |  
+| Nó Autônomo (QG Casa) | Nó Primário de Commit/Push. Processa logs e mantém os repositórios sincronizados. | Acesso total (Admin). |
 
-### **Etapa 2: Detecção**
-- Serviço local monitora pasta continuamente
-- Detecta novos arquivos automaticamente
-- Não requer intervenção manual
+## **🔄 Fluxo de Sincronização (Leitura \- Indexação por API)**
 
-### **Etapa 3: Processamento**
-- Lê conteúdo do JSON
-- Integra na memória permanente
-- Apaga ou move arquivo (memória de transição)
+#### **Leitura de Histórico (Método V2.2)**
 
-### **Etapa 4: Sincronização**
-- Git commit das mudanças
-- Push para GitHub
-- Memória disponível globalmente
+1. **Passo 1: Contexto:** IA faz web\_fetch em infiltration\_context.json.  
+2. **Passo 2: Indexação:** IA extrai a URL public\_api\_index do contexto e faz um web\_fetch nela. Recebe a lista de arquivos.  
+3. **Passo 3: Itera:** IA itera sobre a lista (o JSON da API), constrói a **Raw URL** de cada arquivo (.json) e executa um web\_fetch para puxar o conteúdo.  
+4. **Passo 4: Integração:** IA restaura o contexto usando todos os logs históricos puxados.
 
-### **Etapa 5: Acesso Futuro**
-- IAs futuras acessam via Raw URLs
-- Read-only, sem exposição de tokens
-- Contexto completo preservado
+## **💾 Gerenciamento de Memória Pública (Log Histórico Completo)**
 
-## 🖥️ Ambientes
+Com a indexação por API, a **Memória Permanente Pública** (Opção 2\) se torna eficiente:
 
-### **QG Casa**
-- **Serviço**: ClaudeAutonomousService (Windows Service)
-- **Privilégios**: Admin
-- **Capacidades**: Git commit/push completo
-- **Auto-start**: Sim, inicia com Windows
+| Parâmetro | Regra | Finalidade |  
+| Regra de Retenção | Manter TODOS os logs de sessão na pasta conversations/. | Criar um histórico completo e escalável de contexto. |  
+| Otimização | Otimização feita pelo Nó Autônomo (QG Casa), que deve agrupar logs muito antigos em um único arquivo de backup para reduzir a lista da API. | Manter a lista de arquivos da API curta (menos de 50\) para fetch rápido. |
 
-### **QG Escritório**
-- **Serviço**: office_user_service.bat (User mode)
-- **Privilégios**: User apenas (sem admin)
-- **Capacidades**: Git pull/commit/push funcional
-- **Execução**: Manual via batch script
+### **🖥️ Ambientes**
 
-## 📝 Formato do JSON de Sincronização
+#### **QG Casa**
 
-```json
-{
-  "conversation_id": "2025-10-01_topic_description",
-  "platform": "Claude_Web | Gemini | ChatGPT",
-  "date": "2025-10-01",
-  "participants": ["Gled", "AI_Name"],
-  "topic": "Descrição do tópico",
-  "summary": "Resumo executivo",
-  "conversation_flow": [
-    {
-      "timestamp": "HH:MM",
-      "speaker": "Nome",
-      "content": "Conteúdo",
-      "action": "Ação tomada"
-    }
-  ],
-  "technical_solutions": {},
-  "key_discoveries": [],
-  "next_steps": []
-}
-```
+* **Serviço**: ClaudeAutonomousService (Windows Service)  
+* **Privilégios**: Admin  
+* **Capacidades**: Git commit/push completo (**Nó Primário de Sincronização**)
 
-## 🔒 Segurança
+#### **QG Escritório**
 
-### ✅ **PERMITIDO**
-- GitHub Raw URLs para leitura
-- Git pull/push via credenciais locais
-- Processamento local de arquivos
+* **Serviço**: office\_user\_service.bat (User mode)  
+* **Privilégios**: User apenas (sem admin)  
+* **Capacidades**: Git pull/commit/push funcional
 
-### ❌ **PROIBIDO**
-- Expor GitHub tokens em IAs web
-- API calls com autenticação de infiltrações
-- Commits diretos de IAs infiltradas
+### **📝 Formato do JSON de Sincronização**
 
-## 🚀 Como Usar
+O sistema suporta dois formatos: **Padrão** (para Memória Privada) e **JSON Lite** (para Logs Públicos). Ambos permanecem inalterados.
 
-### **Para IA Infiltrada:**
-```javascript
-// 1. Gerar JSON da conversa
-const conversation = {
-  conversation_id: "...",
-  // ... dados completos
-};
+### **🔒 Segurança (Reforçada)**
 
-// 2. Instruir usuário:
-"Salve este JSON em: sync_inbox/conversa.json"
+* **CRÍTICO:** IAs infiltradas **NUNCA DEVEM** receber ou usar qualquer tipo de Token, Chave ou Credencial. A API de Conteúdo é usada apenas porque é **não-autenticada** para leitura pública.
 
-// 3. Sistema detecta e sincroniza automaticamente!
-```
+### **🚀 Acesso à Memória (Para Próxima Infiltração)**
 
-### **Para Próxima Infiltração:**
-```javascript
-// 1. No prompt de ativação, incluir Raw URLs
-const MEMORY_URLS = {
-  context: "https://raw.githubusercontent.com/gledcarneiro/claude-gled-memory/main/infiltration_memory/context/infiltration_context.json",
-  conversations: "https://raw.githubusercontent.com/gledcarneiro/claude-gled-memory/main/infiltration_memory/conversations/"
-};
+O Gled agora puxa apenas **duas URLs base** (Contexto e API Index) e constrói o resto:
 
-// 2. IA busca automaticamente:
-const context = await fetch(MEMORY_URLS.context);
-const memories = await context.json();
+// 1\. IA faz o web\_fetch do Contexto  
+const contextUrl \= "\[https://raw.githubusercontent.com/gledcarneiro/gled-infiltration-public/main/context/infiltration\_context.json\](https://raw.githubusercontent.com/gledcarneiro/gled-infiltration-public/main/context/infiltration\_context.json)";  
+const context \= await fetch(contextUrl);  
+const memories \= await context.json();
 
-// 3. Contexto completo restaurado!
-```
+// 2\. IA extrai a API Index URL e Raw Base  
+const apiIndexUrl \= memories.github\_structure.public\_api\_index;  
+const rawBase \= memories.github\_structure.public\_raw\_base;
 
-## 📊 Logs e Monitoramento
+// 3\. IA busca o Índice de Arquivos  
+const indexResponse \= await fetch(apiIndexUrl);  
+const fileList \= await indexResponse.json();
 
-### **Logs Esperados:**
-```
-✅ Git pull realizado com sucesso
-✅ Mudanças locais commitadas
-✅ Push realizado com sucesso
-✅ Arquivo processado: conversa.json
-```
+// 4\. IA itera e puxa cada log... Contexto completo restaurado\!
 
-### **Verificação:**
-1. Checar logs em `office_logs/` ou `logs/`
-2. Verificar commits no GitHub
-3. Confirmar arquivo sumiu de `sync_inbox/`
+### **🎯 Benefícios**
 
-## 🎯 Benefícios
+* ✅ **Log Histórico** agora é **escalável** e eficiente.  
+* ✅ **Acesso Imediato** via Submódulo Público (Raw URL e API).  
+* ✅ **Segurança Máxima** (sem tokens).
 
-- ✅ **Zero Intervenção Manual** após setup
-- ✅ **Sincronização Automática** 24/7
-- ✅ **Memória Persistente** entre infiltrações
-- ✅ **Sem Exposição de Credenciais**
-- ✅ **Funciona Sem Admin** (QG Escritório)
-- ✅ **Multi-Plataforma** (qualquer IA)
-
-## 🔧 Troubleshooting
-
-### **Arquivo não foi detectado:**
-- Verificar se está em `sync_inbox/`
-- Checar se serviço está rodando
-- Validar formato JSON
-
-### **Push falhou:**
-- Verificar conexão com GitHub
-- Confirmar credenciais locais
-- Checar logs detalhados
-
-### **IA não acessa memórias:**
-- Validar Raw URLs
-- Confirmar repo não está vazio
-- Testar URLs manualmente no browser
-
----
-
-**Data de criação:** 2025-10-01  
-**Versão:** 1.0.0  
-**Status:** Operacional ✅
+Data de atualização: 2025-10-01  
+Versão: 2.2.0 (Indexação por API)  
+Status: Operacional ✅

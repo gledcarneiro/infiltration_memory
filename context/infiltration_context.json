@@ -1,6 +1,6 @@
 {
-  "version": "2.0.0",
-  "last_update": "2025-10-01T12:36:49-03:00",
+  "version": "2.1.0",
+  "last_update": "2025-10-01T15:30:15-03:00",
   "system_status": {
     "qg_casa": {
       "status": "operational",
@@ -51,7 +51,7 @@
     },
     "gemini": {
       "status": "tested_success",
-      "last_sync": "2025-10-01T12:36:49-03:00",
+      "last_sync": "2025-10-01T15:30:15-03:00",
       "capabilities": [
         "web_fetch_raw",
         "artifact_creation",
@@ -62,20 +62,19 @@
     "chatgpt": "pending_test"
   },
   "sync_system": {
-    "method": "sync_inbox_monitoring_bidirectional",
-    "description": "Sistema bidirecional. O serviço local (qg_casa) sincroniza JSONs da sync_inbox para o GitHub. IAs infiltradas leem o contexto via URL Raw do Submódulo Público.",
+    "method": "api_indexing_full_history",
+    "description": "Sistema de indexação e leitura de histórico completo via API GitHub não-autenticada, garantindo escalabilidade.",
     "flow": [
-      "1. Salvar JSON em sync_inbox/",
-      "2. Serviço detecta automaticamente",
-      "3. Processa e integra na memória universal",
-      "4. Move/Copia arquivo para infiltration_memory/conversations (via Submódulo)",
-      "5. Commit e push para GitHub (Repos Privado e Submódulo Público)",
-      "6. [Leitura IA Infiltrada]: GET no public_raw_base para carregar o contexto mais recente."
+      "1. IA lê o infiltration_context.json.",
+      "2. IA usa a URL da API do GitHub contida no contexto para listar arquivos em conversations/.",
+      "3. IA itera a lista e puxa cada log via Raw URL.",
+      "4. (Escrita) Salvar JSON em sync_inbox/ para processamento do Nó Autônomo."
     ]
   },
   "github_structure": {
     "private_repo": "gledcarneiro/claude-gled-memory",
     "public_submodule": "gledcarneiro/gled-infiltration-public",
-    "public_raw_base": "https://raw.githubusercontent.com/gledcarneiro/gled-infiltration-public/main"
+    "public_raw_base": "https://raw.githubusercontent.com/gledcarneiro/gled-infiltration-public/main",
+    "public_api_index": "https://api.github.com/repos/gledcarneiro/gled-infiltration-public/contents/conversations"
   }
 }
