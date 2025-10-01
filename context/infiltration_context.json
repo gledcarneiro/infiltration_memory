@@ -1,0 +1,81 @@
+{
+  "version": "2.0.0",
+  "last_update": "2025-10-01T12:36:49-03:00",
+  "system_status": {
+    "qg_casa": {
+      "status": "operational",
+      "privileges": "admin",
+      "primary_autonomous_node": true,
+      "services": [
+        "ClaudeAutonomousService",
+        "MemorySyncMonitor"
+      ],
+      "capabilities": [
+        "git_commit",
+        "github_push",
+        "local_storage",
+        "submodule_update"
+      ]
+    },
+    "qg_escritorio": {
+      "status": "operational",
+      "privileges": "user_only",
+      "primary_autonomous_node": false,
+      "services": [
+        "office_user_service.bat",
+        "MonitoringAgent"
+      ],
+      "capabilities": [
+        "git_pull",
+        "github_push",
+        "monitoring"
+      ]
+    }
+  },
+  "active_projects": {
+    "claude-gled-memory": {
+      "description": "Sistema de memória autônoma e inteligente",
+      "workspace_casa": "C:\\Users\\Gled\\TRAE\\claude-gled-memory",
+      "workspace_escritorio": "C:\\Users\\gledston.carneiro\\TRAE\\claude-gled-memory",
+      "sync_method": "sync_inbox + GitHub Bidirecional",
+      "status": "active"
+    }
+  },
+  "infiltration_capabilities": {
+    "claude_web": {
+      "web_fetch": true,
+      "github_raw_urls": true,
+      "github_api_commit": false,
+      "artifact_creation": true,
+      "web_search": true
+    },
+    "gemini": {
+      "status": "tested_success",
+      "last_sync": "2025-10-01T12:36:49-03:00",
+      "capabilities": [
+        "web_fetch_raw",
+        "artifact_creation",
+        "web_search"
+      ],
+      "verified_sync_method": "auto_json_monitor"
+    },
+    "chatgpt": "pending_test"
+  },
+  "sync_system": {
+    "method": "sync_inbox_monitoring_bidirectional",
+    "description": "Sistema bidirecional. O serviço local (qg_casa) sincroniza JSONs da sync_inbox para o GitHub. IAs infiltradas leem o contexto via URL Raw do Submódulo Público.",
+    "flow": [
+      "1. Salvar JSON em sync_inbox/",
+      "2. Serviço detecta automaticamente",
+      "3. Processa e integra na memória universal",
+      "4. Move/Copia arquivo para infiltration_memory/conversations (via Submódulo)",
+      "5. Commit e push para GitHub (Repos Privado e Submódulo Público)",
+      "6. [Leitura IA Infiltrada]: GET no public_raw_base para carregar o contexto mais recente."
+    ]
+  },
+  "github_structure": {
+    "private_repo": "gledcarneiro/claude-gled-memory",
+    "public_submodule": "gledcarneiro/gled-infiltration-public",
+    "public_raw_base": "https://raw.githubusercontent.com/gledcarneiro/gled-infiltration-public/main"
+  }
+}
